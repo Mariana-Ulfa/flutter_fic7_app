@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_fic7_app/data/datasources/auth_local_datasource.dart';
+import 'package:flutter_fic7_app/pages/auth/auth_page.dart';
 
-import '../../data/datasources/auth_local_datasource.dart';
+import '../../bloc/logout/logout_bloc.dart';
 import '../../utils/image.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -33,7 +36,7 @@ class _HomePageState extends State<DashboardPage> {
     _screens = [
       const Center(
         child: Column(
-        children: [
+          children: [
             Text('Home'),
           ],
         ),
@@ -41,8 +44,46 @@ class _HomePageState extends State<DashboardPage> {
       const Center(
         child: Text('Order'),
       ),
-      const Center(
-        child: Text('More'),
+      Center(
+        child: BlocConsumer<LogoutBloc, LogoutState>(
+          listener: (context, state) {
+            state.maybeWhen(
+              orElse: () {},
+              loaded: (message) {
+                AuthLocalDatasource().removeAuthData();
+                Navigator.pushAndRemoveUntil(context,
+                    MaterialPageRoute(builder: (context) {
+                  return const AuthPage();
+                }), (route) => false);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Logout Successfully'),
+                  backgroundColor: Colors.blue,
+                ));
+              },
+              error: (message) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(message),
+                  backgroundColor: Colors.red,
+                ));
+              },
+            );
+          },
+          builder: (context, state) {
+            return state.maybeWhen(
+              orElse: () {
+                return ElevatedButton(
+                  onPressed: () {
+                    context.read<LogoutBloc>().add(const LogoutEvent.logout());
+                  },
+                  child: const Text('Logout'),
+                );
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+        ),
       ),
     ];
   }
@@ -97,10 +138,9 @@ class _HomePageState extends State<DashboardPage> {
 
   List<BottomNavigationBarItem> _getBottomWidget(bool isSingleVendor) {
     List<BottomNavigationBarItem> list = [];
-      list.add(_barItem(Images.homeImage, 'Home', 0));
-      list.add(_barItem(Images.shoppingImage, 'Orders', 1));
-      list.add(_barItem(Images.moreImage, 'More', 2));
-
+    list.add(_barItem(Images.homeImage, 'Home', 0));
+    list.add(_barItem(Images.shoppingImage, 'Orders', 1));
+    list.add(_barItem(Images.moreImage, 'More', 2));
     return list;
   }
 }
